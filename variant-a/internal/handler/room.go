@@ -26,6 +26,12 @@ type msgRepo interface {
 	ListByRoom(ctx context.Context, roomID string, before string, limit int) ([]model.Message, bool, error)
 }
 
+// RoomRepoForTest is the exported version of roomRepo for use in external test packages.
+type RoomRepoForTest = roomRepo
+
+// MsgRepoForTest is the exported version of msgRepo for use in external test packages.
+type MsgRepoForTest = msgRepo
+
 // RoomHandler handles room-related HTTP endpoints.
 type RoomHandler struct {
 	roomRepo roomRepo

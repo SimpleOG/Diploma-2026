@@ -125,7 +125,7 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "joined room"})
+	c.JSON(http.StatusOK, gin.H{"message": "joined successfully"})
 }
 
 // GetMessages handles GET /api/v1/rooms/:id/messages.

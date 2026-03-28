@@ -13,7 +13,6 @@ import (
 
 	gincors "github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,9 +29,6 @@ import (
 )
 
 func main() {
-	// Load .env if present (ignore error in production).
-	_ = godotenv.Load()
-
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	})))
@@ -165,8 +161,8 @@ func main() {
 		}
 	}
 
-	// WebSocket endpoint – auth middleware reads the token from query param.
-	r.GET("/ws", middleware.Auth(authSvc), wsHandler.ServeWS)
+	// WebSocket endpoint – token comes from ?token= query param (browsers cannot set headers).
+	r.GET("/ws", middleware.WebSocketAuth(authSvc), wsHandler.ServeWS)
 
 	// ── HTTP Server ───────────────────────────────────────────────────────────
 	srv := &http.Server{

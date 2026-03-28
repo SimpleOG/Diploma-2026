@@ -87,7 +87,7 @@ func (h *RoomHandler) Join(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "joined room"})
+	c.JSON(http.StatusOK, gin.H{"message": "joined successfully"})
 }
 
 // Messages handles GET /api/v1/rooms/:id/messages – paginated message history from MongoDB.

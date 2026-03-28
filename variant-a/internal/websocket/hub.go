@@ -102,10 +102,15 @@ func (h *Hub) handleUnregister(client *Client) {
 			"username": client.username,
 			"room_id":  client.roomID,
 		})
-		h.broadcast <- &BroadcastMessage{
+		select {
+		case h.broadcast <- &BroadcastMessage{
 			RoomID:  client.roomID,
 			Payload: payload,
 			Exclude: client,
+		}:
+		default:
+			slog.Warn("hub: broadcast channel full, dropping user_left notification",
+				"user_id", client.userID, "room_id", client.roomID)
 		}
 	}
 

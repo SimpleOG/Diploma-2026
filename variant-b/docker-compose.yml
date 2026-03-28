@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: chatpass
       POSTGRES_DB: chatdb
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,7 @@ services:
     image: mongo:7
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "27018:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
@@ -69,14 +69,14 @@ services:
     image: memcached:1.6-alpine
     restart: unless-stopped
     ports:
-      - "11211:11211"
+      - "11212:11211"
     command: ["memcached", "-m", "64"]
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6381:6379"
     volumes:
       - redis_data:/data
     healthcheck:

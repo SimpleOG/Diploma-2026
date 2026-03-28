@@ -43,7 +43,7 @@ const WS_URL   = BASE_URL.replace('http://', 'ws://').replace('https://', 'wss:/
 export function setup() {
   const regRes = http.post(
     `${BASE_URL}/api/v1/auth/register`,
-    JSON.stringify({ username: `setup_a_${Date.now()}`, password: 'setuppass123' }),
+    JSON.stringify({ username: `setup_a_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, password: 'setuppass123' }),
     { headers: { 'Content-Type': 'application/json' } }
   );
   if (regRes.status !== 201) {
@@ -70,7 +70,7 @@ export function setup() {
 
 // ── Основной сценарий (выполняется каждым VU) ────────────────────────────────
 export default function (data) {
-  const username = `user_a_${__VU}_${Date.now()}`;
+  const username = `user_a_${__VU}_${__ITER}_${Math.random().toString(36).slice(2, 8)}`;
 
   // 1. Регистрация
   const regRes = http.post(

@@ -144,13 +144,6 @@ func (c *Client) WritePump() {
 			}
 			_, _ = w.Write(msg)
 
-			// Batch any queued messages.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				_, _ = w.Write([]byte("\n"))
-				_, _ = w.Write(<-c.send)
-			}
-
 			if err := w.Close(); err != nil {
 				return
 			}

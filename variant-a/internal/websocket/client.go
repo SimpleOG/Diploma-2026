@@ -196,15 +196,6 @@ func (c *Client) writePump() {
 				return
 			}
 
-			// Drain any queued messages in the same writer for efficiency.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				if _, err := w.Write(<-c.send); err != nil {
-					_ = w.Close()
-					return
-				}
-			}
-
 			if err := w.Close(); err != nil {
 				return
 			}

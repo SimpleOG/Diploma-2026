@@ -77,5 +77,10 @@ func (h *Hub) Run() {
 
 // Broadcast enqueues a message to be sent to all clients in the room.
 func (h *Hub) Broadcast(roomID string, payload []byte) {
-	h.broadcast <- &BroadcastMessage{RoomID: roomID, Payload: payload}
+	select {
+	case h.broadcast <- &BroadcastMessage{RoomID: roomID, Payload: payload}:
+	default:
+		slog.Warn("hub: broadcast channel full, dropping user_left notification",
+			"room_id", roomID)
+	}
 }

@@ -57,7 +57,7 @@ export const options = {
 export function setup() {
   const regRes = http.post(
     `${AUTH_URL}/api/v1/auth/register`,
-    JSON.stringify({ username: `setup_c_${Date.now()}`, password: 'setuppass123' }),
+    JSON.stringify({ username: `setup_c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, password: 'setuppass123' }),
     { headers: { 'Content-Type': 'application/json' } }
   );
   if (regRes.status !== 201) {
@@ -85,7 +85,7 @@ export function setup() {
 
 // ── Основной сценарий (выполняется каждым VU) ────────────────────────────────
 export default function(data) {
-  const username = `user_c_${__VU}_${Date.now()}`;
+  const username = `user_c_${__VU}_${__ITER}_${Math.random().toString(36).slice(2, 8)}`;
 
   // 1. Регистрация через auth-service
   const regStart = Date.now();

@@ -166,7 +166,12 @@ func (h *Hub) publishToRedis(ctx context.Context, roomID string, payload []byte)
 
 // BroadcastToRoom queues a message to be sent to all clients in a room.
 func (h *Hub) BroadcastToRoom(roomID string, payload []byte) {
-	h.broadcast <- roomMessage{roomID: roomID, payload: payload}
+	select {
+	case h.broadcast <- roomMessage{roomID: roomID, payload: payload}:
+	default:
+		slog.Warn("hub: broadcast channel full, dropping user_left notification",
+			"room_id", roomID)
+	}
 }
 
 // Subscribe registers a client to receive messages for a room.

@@ -2,7 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds all configuration for the messages-service.
@@ -15,8 +18,15 @@ type Config struct {
 	RoomsServiceURL string
 }
 
-// Load reads configuration from environment variables.
+// Load reads configuration from app.env (или .env, или переменные окружения).
 func Load() (*Config, error) {
+	// Загружаем app.env, если нет — .env, если нет — берём из окружения.
+	if err := godotenv.Load("app.env"); err != nil {
+		if err2 := godotenv.Load(); err2 != nil {
+			slog.Info("No app.env or .env file found, reading from environment")
+		}
+	}
+
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8083"

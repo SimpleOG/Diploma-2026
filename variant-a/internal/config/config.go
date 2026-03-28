@@ -21,9 +21,11 @@ type Config struct {
 // Load reads configuration from environment variables after loading a .env file.
 // It is fatal if JWT_SECRET or DB_DSN is missing.
 func Load() *Config {
-	// Attempt to load .env; ignore error if file doesn't exist.
-	if err := godotenv.Load(); err != nil {
-		slog.Info("No .env file found, reading from environment")
+	// Загружаем app.env, если нет — .env, если нет — берём из окружения.
+	if err := godotenv.Load("app.env"); err != nil {
+		if err2 := godotenv.Load(); err2 != nil {
+			slog.Info("No app.env or .env file found, reading from environment")
+		}
 	}
 
 	cfg := &Config{

@@ -41,6 +41,11 @@ func NewClient(hub *Hub, conn *websocket.Conn, userID, username string) *Client 
 	}
 }
 
+// SendChan returns the client's send channel (used for testing).
+func (c *Client) SendChan() <-chan []byte {
+	return c.send
+}
+
 // ReadPump pumps messages from the WebSocket connection to the hub.
 // Handles "join", "leave", and "ping" events from the client.
 func (c *Client) ReadPump() {

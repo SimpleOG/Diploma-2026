@@ -53,9 +53,13 @@ func NewHub(redisClient *redis.Client) *Hub {
 
 // Run starts the hub event loop. Should be called in a goroutine.
 func (h *Hub) Run(ctx context.Context) {
-	// Subscribe to all room channels via Redis.
-	h.redisPubSub = h.redisClient.PSubscribe(ctx, "room:*")
-	redisCh := h.redisPubSub.Channel()
+	var redisCh <-chan *redis.Message
+
+	// Subscribe to all room channels via Redis if available.
+	if h.redisClient != nil {
+		h.redisPubSub = h.redisClient.PSubscribe(ctx, "room:*")
+		redisCh = h.redisPubSub.Channel()
+	}
 
 	for {
 		select {

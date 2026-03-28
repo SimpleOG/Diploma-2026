@@ -28,9 +28,9 @@ func (h *HealthHandler) Health(c *gin.Context) {
 	defer cancel()
 
 	status := gin.H{
-		"status":    "ok",
-		"postgres":  "ok",
-		"mongodb":   "ok",
+		"status":   "ok",
+		"postgres": "ok",
+		"mongodb":  "ok",
 	}
 	httpStatus := http.StatusOK
 

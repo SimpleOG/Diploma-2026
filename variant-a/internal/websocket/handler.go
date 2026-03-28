@@ -11,7 +11,6 @@ import (
 
 	"github.com/chat-diploma/variant-a/internal/middleware"
 	"github.com/chat-diploma/variant-a/internal/model"
-	"github.com/chat-diploma/variant-a/internal/repository"
 	"github.com/gin-gonic/gin"
 	gorillaws "github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"

@@ -16,12 +16,12 @@ type KafkaProducer struct {
 // NewProducer creates a KafkaProducer connected to the given comma-separated brokers.
 func NewProducer(brokers string) (*KafkaProducer, error) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers":            brokers,
-		"acks":                         "1",
-		"retries":                      3,
-		"retry.backoff.ms":             200,
-		"socket.keepalive.enable":      true,
-		"message.timeout.ms":           10000,
+		"bootstrap.servers":       brokers,
+		"acks":                    "1",
+		"retries":                 3,
+		"retry.backoff.ms":        200,
+		"socket.keepalive.enable": true,
+		"message.timeout.ms":      10000,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("kafka producer: new: %w", err)

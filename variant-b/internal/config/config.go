@@ -8,18 +8,18 @@ import (
 
 // Config holds all runtime configuration read from environment variables.
 type Config struct {
-	ServerPort          string
-	WorkerInstances     int
-	DBDSN               string
-	MongoURI            string
-	MongoDB             string
-	KafkaBrokers        string
-	KafkaTopic          string
-	KafkaConsumerGroup  string
-	MemcachedAddr       string
-	RedisAddr           string
-	JWTSecret           string
-	JWTExpirationHours  int
+	ServerPort         string
+	WorkerInstances    int
+	DBDSN              string
+	MongoURI           string
+	MongoDB            string
+	KafkaBrokers       string
+	KafkaTopic         string
+	KafkaConsumerGroup string
+	MemcachedAddr      string
+	RedisAddr          string
+	JWTSecret          string
+	JWTExpirationHours int
 }
 
 // Load reads configuration from environment variables with sane defaults.

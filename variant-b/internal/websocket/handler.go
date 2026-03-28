@@ -49,11 +49,11 @@ type ackMessage struct {
 
 // Handler holds dependencies for the WebSocket upgrade and message processing.
 type Handler struct {
-	hub          *Hub
-	roomRepo     *repository.RoomRepository
-	memcached    *cache.MemcachedClient
-	producer     *kafka.KafkaProducer
-	kafkaTopic   string
+	hub        *Hub
+	roomRepo   *repository.RoomRepository
+	memcached  *cache.MemcachedClient
+	producer   *kafka.KafkaProducer
+	kafkaTopic string
 }
 
 // NewHandler creates a new WebSocket Handler.

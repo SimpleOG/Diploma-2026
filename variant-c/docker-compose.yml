@@ -1,0 +1,210 @@
+version: "3.9"
+
+services:
+  # ─── Infrastructure ───────────────────────────────────────────────────────────
+
+  auth-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: authpass
+      POSTGRES_DB: auth_db
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authuser -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rooms-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: roomsuser
+      POSTGRES_PASSWORD: roomspass
+      POSTGRES_DB: rooms_db
+    volumes:
+      - rooms_postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roomsuser -d rooms_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: chatdb
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # ─── Services ─────────────────────────────────────────────────────────────────
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      SERVER_PORT: "8081"
+      DB_DSN: "postgres://authuser:authpass@auth-postgres:5432/auth_db?sslmode=disable"
+      JWT_SECRET: "your-very-secret-key-change-in-production"
+      JWT_EXPIRATION_HOURS: "24"
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rooms-service:
+    build:
+      context: ./rooms-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SERVER_PORT: "8082"
+      DB_DSN: "postgres://roomsuser:roomspass@rooms-postgres:5432/rooms_db?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      AUTH_SERVICE_URL: "http://auth-service:8081"
+    depends_on:
+      rooms-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  messages-service:
+    build:
+      context: ./messages-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SERVER_PORT: "8083"
+      MONGO_URI: "mongodb://mongo:27017"
+      MONGO_DB: "chatdb"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
+      AUTH_SERVICE_URL: "http://auth-service:8081"
+      ROOMS_SERVICE_URL: "http://rooms-service:8082"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      rooms-service:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notifications-service:
+    build:
+      context: ./notifications-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SERVER_PORT: "8084"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
+      REDIS_ADDR: "redis:6379"
+      AUTH_SERVICE_URL: "http://auth-service:8081"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# ─── Volumes ────────────────────────────────────────────────────────────────────
+
+volumes:
+  auth_postgres_data:
+  rooms_postgres_data:
+  redis_data:
+  mongo_data:
+  rabbitmq_data:
+
+# ─── Networks ───────────────────────────────────────────────────────────────────
+
+networks:
+  backend:
+    driver: bridge

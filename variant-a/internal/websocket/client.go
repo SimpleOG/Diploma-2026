@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gorilla/websocket"
+	gorillaws "github.com/gorilla/websocket"
 )
 
 const (
@@ -31,7 +31,7 @@ type incomingMessage struct {
 
 // Client is a middleman between the WebSocket connection and the hub.
 type Client struct {
-	conn     *websocket.Conn
+	conn     *gorillaws.Conn
 	userID   string
 	username string
 	roomID   string
@@ -40,7 +40,7 @@ type Client struct {
 }
 
 // NewClient constructs a new Client. The send channel is buffered to 256.
-func NewClient(conn *websocket.Conn, userID, username string, hub *Hub) *Client {
+func NewClient(conn *gorillaws.Conn, userID, username string, hub *Hub) *Client {
 	return &Client{
 		conn:     conn,
 		userID:   userID,
@@ -73,10 +73,10 @@ func (c *Client) readPump(msgHandler MessageHandlerInterface) {
 	for {
 		_, raw, err := c.conn.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err,
-				websocket.CloseGoingAway,
-				websocket.CloseAbnormalClosure,
-				websocket.CloseNormalClosure,
+			if gorillaws.IsUnexpectedCloseError(err,
+				gorillaws.CloseGoingAway,
+				gorillaws.CloseAbnormalClosure,
+				gorillaws.CloseNormalClosure,
 			) {
 				slog.Warn("ws unexpected close", "user_id", c.userID, "err", err)
 			}
@@ -170,12 +170,12 @@ func (c *Client) writePump() {
 			}
 			if !ok {
 				// Hub closed the channel – send a close frame and return.
-				_ = c.conn.WriteMessage(websocket.CloseMessage,
-					websocket.FormatCloseMessage(websocket.CloseGoingAway, "server closing"))
+				_ = c.conn.WriteMessage(gorillaws.CloseMessage,
+					gorillaws.FormatCloseMessage(gorillaws.CloseGoingAway, "server closing"))
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
+			w, err := c.conn.NextWriter(gorillaws.TextMessage)
 			if err != nil {
 				return
 			}
@@ -202,7 +202,7 @@ func (c *Client) writePump() {
 			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				return
 			}
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			if err := c.conn.WriteMessage(gorillaws.PingMessage, nil); err != nil {
 				return
 			}
 		}

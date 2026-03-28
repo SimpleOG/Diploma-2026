@@ -21,13 +21,13 @@ type KafkaConsumer struct {
 // NewConsumer creates a KafkaConsumer that subscribes to the given topic.
 func NewConsumer(brokers, group, topic string) (*KafkaConsumer, error) {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers":        brokers,
-		"group.id":                 group,
-		"auto.offset.reset":        "earliest",
-		"enable.auto.commit":       false,
-		"session.timeout.ms":       30000,
-		"max.poll.interval.ms":     300000,
-		"socket.keepalive.enable":  true,
+		"bootstrap.servers":       brokers,
+		"group.id":                group,
+		"auto.offset.reset":       "earliest",
+		"enable.auto.commit":      false,
+		"session.timeout.ms":      30000,
+		"max.poll.interval.ms":    300000,
+		"socket.keepalive.enable": true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("kafka consumer: new: %w", err)

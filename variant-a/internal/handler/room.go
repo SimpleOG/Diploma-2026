@@ -88,13 +88,13 @@ func (h *RoomHandler) CreateRoom(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"room": model.RoomResponse{
+	c.JSON(http.StatusCreated, model.RoomResponse{
 		ID:          room.ID,
 		Name:        room.Name,
 		OwnerID:     room.OwnerID,
 		CreatedAt:   room.CreatedAt,
 		MemberCount: 1,
-	}})
+	})
 }
 
 // JoinRoom handles POST /api/v1/rooms/:id/join.

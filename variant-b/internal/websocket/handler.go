@@ -98,6 +98,14 @@ func (h *Handler) ServeWS(c *gin.Context) {
 	}
 
 	client := NewClient(h.hub, conn, roomID, userID, username, h)
+
+	// Send "joined" confirmation before starting pumps (send channel is buffered).
+	client.SendJSON(map[string]string{
+		"type":    "joined",
+		"room_id": roomID,
+		"user_id": userID,
+	})
+
 	go client.WritePump()
 	go client.ReadPump()
 }

@@ -12,7 +12,7 @@ const (
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
 	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 4096
+	maxMessageSize = 65536
 )
 
 // Client is a middleman between the WebSocket connection and the hub.
@@ -90,8 +90,9 @@ func (c *Client) WritePump() {
 				return
 			}
 			if !ok {
-				// Hub closed the channel.
-				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				// Hub closed the channel – send CloseGoingAway (1001) per TZ spec.
+				_ = c.conn.WriteMessage(websocket.CloseMessage,
+					websocket.FormatCloseMessage(websocket.CloseGoingAway, "server closing"))
 				return
 			}
 			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {

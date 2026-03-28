@@ -17,7 +17,6 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 
 	"github.com/chat-diploma/variant-c/auth-service/internal/config"
@@ -30,9 +29,6 @@ import (
 var migrationsFS embed.FS
 
 func main() {
-	// Load .env file if present (ignore error for production deployments).
-	_ = godotenv.Load()
-
 	// Initialize structured logger.
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)

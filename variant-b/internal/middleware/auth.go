@@ -42,3 +42,26 @@ func Auth(svc *auth.Service) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// WebSocketAuth returns a Gin middleware that validates a JWT supplied as the
+// "token" query parameter. Required for WebSocket endpoints since browsers
+// cannot set custom headers on WebSocket connections.
+func WebSocketAuth(svc *auth.Service) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenStr := c.Query("token")
+		if tokenStr == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token query parameter required"})
+			return
+		}
+
+		claims, err := svc.ValidateToken(tokenStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			return
+		}
+
+		c.Set(ContextKeyUserID, claims.UserID)
+		c.Set(ContextKeyUsername, claims.Username)
+		c.Next()
+	}
+}

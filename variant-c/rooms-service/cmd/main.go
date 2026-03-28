@@ -27,7 +27,7 @@ import (
 	"github.com/chat-diploma/variant-c/rooms-service/internal/repository"
 )
 
-//go:embed ../migrations/*.sql
+//go:embed migrations/*.sql
 var migrationsFS embed.FS
 
 func main() {

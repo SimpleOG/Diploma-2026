@@ -17,12 +17,12 @@ const (
 
 // Publisher manages a RabbitMQ connection and publishes messages to an exchange.
 type Publisher struct {
-	url        string
-	conn       *amqp.Connection
-	ch         *amqp.Channel
-	mu         sync.Mutex
-	confirms   chan amqp.Confirmation
-	closeChan  chan *amqp.Error
+	url       string
+	conn      *amqp.Connection
+	ch        *amqp.Channel
+	mu        sync.Mutex
+	confirms  chan amqp.Confirmation
+	closeChan chan *amqp.Error
 }
 
 // NewPublisher creates a new Publisher and establishes a connection.

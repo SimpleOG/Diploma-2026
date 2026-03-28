@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	exchangeName    = "messaging.events"
-	exchangeType    = "topic"
-	queueName       = "notifications.websocket"
-	bindingKey      = "room.#"
-	prefetchCount   = 20
+	exchangeName  = "messaging.events"
+	exchangeType  = "topic"
+	queueName     = "notifications.websocket"
+	bindingKey    = "room.#"
+	prefetchCount = 20
 )
 
 // Broadcaster is implemented by the WebSocket hub.

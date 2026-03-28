@@ -20,7 +20,7 @@ type WSMessage struct {
 
 // WSIncoming is a client-to-server WebSocket message.
 type WSIncoming struct {
-	Type   string `json:"type"`   // "join", "leave", "ping"
+	Type   string `json:"type"`    // "join", "leave", "ping"
 	RoomID string `json:"room_id"` // used by join/leave
 }
 

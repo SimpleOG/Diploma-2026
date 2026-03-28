@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
 )
 
 // Config holds all runtime configuration read from environment variables.
@@ -22,8 +24,15 @@ type Config struct {
 	JWTExpirationHours int
 }
 
-// Load reads configuration from environment variables with sane defaults.
+// Load reads configuration from app.env (или .env, или переменные окружения).
 func Load() *Config {
+	// Загружаем app.env, если нет — .env, если нет — берём из окружения.
+	if err := godotenv.Load("app.env"); err != nil {
+		if err2 := godotenv.Load(); err2 != nil {
+			slog.Info("No app.env or .env file found, reading from environment")
+		}
+	}
+
 	cfg := &Config{
 		ServerPort:         getEnv("SERVER_PORT", "8080"),
 		WorkerInstances:    getEnvInt("WORKER_INSTANCES", 4),

@@ -1,158 +1,157 @@
-// Scenario for Variant B (port 8081)
-// Run: k6 run --env BASE_URL=http://localhost:8081 scenario_b.js
+// Сценарий нагрузочного теста для Варианта Б (монолит + Kafka, порт 8081)
+// Запуск: k6 run --env BASE_URL=http://localhost:8081 scenario_b.js
+//
+// Особенности Варианта Б:
+//   - WS-эндпоинт требует room_id в URL (?token=...&room_id=...)
+//   - Сообщение сразу бродкастится оптимистично (до сохранения в MongoDB)
+//   - latency = время от отправки до оптимистичного broadcast (очень быстро)
+//   - Реальное сохранение происходит асинхронно: Kafka → Worker → MongoDB
 
 import ws from 'k6/ws';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
-import { SharedArray } from 'k6/data';
 
-const messageLatency = new Trend('message_latency_ms', true);
-const messagesSent = new Counter('messages_sent');
+// ── Кастомные метрики ────────────────────────────────────────────────────────
+const messageLatency   = new Trend('message_latency_ms', true);
+const messagesSent     = new Counter('messages_sent');
 const messagesReceived = new Counter('messages_received');
 
+// ── Конфигурация ─────────────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '1m', target: 100 },
-    { duration: '2m', target: 500 },
+    { duration: '1m', target: 100  },
+    { duration: '2m', target: 500  },
     { duration: '2m', target: 1000 },
-    { duration: '1m', target: 0 },
+    { duration: '1m', target: 0    },
   ],
   thresholds: {
     message_latency_ms: ['p(50)<100', 'p(95)<500', 'p(99)<1000'],
-    http_req_failed: ['rate<0.01'],
+    http_req_failed:    ['rate<0.01'],
   },
 };
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8081';
-const WS_URL = BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+const WS_URL   = BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
-// Shared room ID created by VU 1
-const rooms = new SharedArray('rooms', function() {
-  return [{ id: null }];
-});
-
+// ── setup() ──────────────────────────────────────────────────────────────────
 export function setup() {
-  // Create a test room as setup
-  const regRes = http.post(`${BASE_URL}/api/v1/auth/register`, JSON.stringify({
-    username: `setup_user_${Date.now()}`,
-    password: 'setuppass123'
-  }), { headers: { 'Content-Type': 'application/json' } });
-
-  if (regRes.status !== 201) return { roomId: null };
-
-  const token = regRes.json('token');
-  const roomRes = http.post(`${BASE_URL}/api/v1/rooms`, JSON.stringify({
-    name: `load-test-room-${Date.now()}`
-  }), { headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  }});
-
-  return { roomId: roomRes.json('id'), token };
-}
-
-export default function(data) {
-  const username = `user_${__VU}_${Date.now()}`;
-
-  // 1. Register
-  const regRes = http.post(`${BASE_URL}/api/v1/auth/register`, JSON.stringify({
-    username,
-    password: 'testpass123'
-  }), { headers: { 'Content-Type': 'application/json' } });
-
-  check(regRes, {
-    'register status 201': (r) => r.status === 201,
-    'register has token': (r) => r.json('token') !== undefined,
-  });
-
-  if (regRes.status !== 201) return;
-
-  const token = regRes.json('token');
-  let roomId = data.roomId;
-
-  // 2. Join or create room
-  if (!roomId) {
-    const roomRes = http.post(`${BASE_URL}/api/v1/rooms`, JSON.stringify({
-      name: `room_${__VU}_${Date.now()}`
-    }), { headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    }});
-    roomId = roomRes.json('id');
-  } else {
-    http.post(`${BASE_URL}/api/v1/rooms/${roomId}/join`, null, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+  const regRes = http.post(
+    `${BASE_URL}/api/v1/auth/register`,
+    JSON.stringify({ username: `setup_b_${Date.now()}`, password: 'setuppass123' }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  if (regRes.status !== 201) {
+    console.error(`setup: register failed ${regRes.status}: ${regRes.body}`);
+    return { roomId: null };
   }
 
+  const token = regRes.json('token');
+  const roomRes = http.post(
+    `${BASE_URL}/api/v1/rooms`,
+    JSON.stringify({ name: `load-test-b-${Date.now()}` }),
+    { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } }
+  );
+
+  const roomId = roomRes.json('id');
+  if (!roomId) {
+    console.error(`setup: room creation failed ${roomRes.status}: ${roomRes.body}`);
+    return { roomId: null };
+  }
+  console.log(`setup: shared room id=${roomId}`);
+  return { roomId };
+}
+
+// ── Сценарий ─────────────────────────────────────────────────────────────────
+export default function (data) {
+  const username = `user_b_${__VU}_${Date.now()}`;
+
+  // 1. Регистрация
+  const regRes = http.post(
+    `${BASE_URL}/api/v1/auth/register`,
+    JSON.stringify({ username, password: 'testpass123' }),
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  check(regRes, {
+    'register 201':   (r) => r.status === 201,
+    'register token': (r) => !!r.json('token'),
+  });
+  if (regRes.status !== 201) return;
+  const token = regRes.json('token');
+
+  // 2. Вступить в комнату
+  let roomId = data.roomId;
+  if (roomId) {
+    const joinRes = http.post(
+      `${BASE_URL}/api/v1/rooms/${roomId}/join`, null,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    check(joinRes, { 'join 200|409': (r) => r.status === 200 || r.status === 409 });
+  } else {
+    const roomRes = http.post(
+      `${BASE_URL}/api/v1/rooms`,
+      JSON.stringify({ name: `room_b_${__VU}_${Date.now()}` }),
+      { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } }
+    );
+    roomId = roomRes.json('id');
+  }
   if (!roomId) return;
 
-  // 3. Connect WebSocket
-  const wsUrl = `${WS_URL}/ws?token=${token}`;
+  // 3. WebSocket — Вариант Б требует room_id в URL при подключении
+  const wsUrl = `${WS_URL}/ws?token=${token}&room_id=${roomId}`;
 
-  const res = ws.connect(wsUrl, {}, function(socket) {
-    socket.on('open', function() {
-      // Join room
-      socket.send(JSON.stringify({ type: 'join', room_id: roomId }));
-    });
+  const res = ws.connect(wsUrl, {}, function (socket) {
+    let sendInterval = null;
+    let msgCount = 0;
+    const MAX_MSGS = 10;
 
-    socket.on('message', function(data) {
-      const msg = JSON.parse(data);
+    socket.on('message', function (raw) {
+      let msg;
+      try { msg = JSON.parse(raw); } catch (e) { return; }
 
-      if (msg.type === 'message' && msg.content) {
-        // Try to parse timestamp from content
-        try {
-          const parts = msg.content.split(':ts:');
-          if (parts.length === 2) {
-            const sentAt = parseInt(parts[1]);
-            const latency = Date.now() - sentAt;
-            if (latency >= 0 && latency < 60000) {
-              messageLatency.add(latency);
-            }
-            messagesReceived.add(1);
-          }
-        } catch(e) {}
-      }
-
+      // Сервер отправляет "joined" сразу после подключения → начинаем слать
       if (msg.type === 'joined') {
-        // Start sending messages every 2 seconds
-        let msgCount = 0;
-        const interval = socket.setInterval(function() {
-          if (msgCount >= 10) {
-            socket.clearInterval(interval);
-            socket.close();
+        sendInterval = socket.setInterval(function () {
+          if (msgCount >= MAX_MSGS) {
+            socket.clearInterval(sendInterval);
+            socket.setTimeout(() => socket.close(), 3000);
             return;
           }
+          const sentAt = Date.now();
           socket.send(JSON.stringify({
-            type: 'message',
+            type:    'message',
             room_id: roomId,
-            content: `Hello from ${username}:ts:${Date.now()}`
+            content: `ping:ts:${sentAt}`,
           }));
           messagesSent.add(1);
           msgCount++;
         }, 2000);
+        return;
+      }
+
+      // Принятое сообщение → замеряем latency
+      if (msg.type === 'message') {
+        const content = msg.content || '';
+        const parts = content.split(':ts:');
+        if (parts.length === 2) {
+          const sentAt = parseInt(parts[1], 10);
+          const latency = Date.now() - sentAt;
+          if (latency >= 0 && latency < 60000) {
+            messageLatency.add(latency);
+          }
+          messagesReceived.add(1);
+        }
       }
 
       if (msg.type === 'error') {
-        console.log(`WS Error: ${msg.message}`);
+        console.log(`VU${__VU} WS error: ${msg.message}`);
       }
     });
 
-    socket.on('error', function(e) {
-      console.log(`WebSocket error: ${e.error()}`);
-    });
-
-    socket.setTimeout(function() {
-      socket.close();
-    }, 30000);
+    socket.on('error', (e) => console.log(`VU${__VU} WS error: ${e.error()}`));
+    socket.setTimeout(() => socket.close(), 35000);
   });
 
-  check(res, { 'ws connected': (r) => r && r.status === 101 });
-
+  check(res, { 'ws 101': (r) => r && r.status === 101 });
   sleep(1);
-}
-
-export function teardown(data) {
-  console.log('Load test completed');
 }

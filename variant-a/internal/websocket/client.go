@@ -104,7 +104,18 @@ func (c *Client) readPump(msgHandler MessageHandlerInterface) {
 			c.roomID = roomID
 			c.hub.register <- c
 
-			// Notify room members.
+			// Send "joined" confirmation back to the connecting client.
+			joined, _ := json.Marshal(map[string]string{
+				"type":    "joined",
+				"room_id": roomID,
+				"user_id": c.userID,
+			})
+			select {
+			case c.send <- joined:
+			default:
+			}
+
+			// Notify other room members.
 			payload, _ := json.Marshal(map[string]string{
 				"type":     "user_joined",
 				"user_id":  c.userID,

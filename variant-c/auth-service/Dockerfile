@@ -5,6 +5,8 @@ WORKDIR /app
 # Install dependencies for CGO (none needed here, but keep for completeness)
 RUN apk add --no-cache git ca-certificates tzdata
 
+ENV GONOSUMDB=* GONOSUMCHECK=* GOFLAGS=-mod=mod
+
 COPY go.mod go.sum* ./
 RUN go mod download
 

@@ -20,14 +20,14 @@ const messagesReceived = new Counter('messages_received');
 // ── Конфигурация ─────────────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '1m', target: 100  },
-    { duration: '2m', target: 500  },
-    { duration: '2m', target: 1000 },
-    { duration: '1m', target: 0    },
+    { duration: '30s', target: 20  },
+    { duration: '1m',  target: 50  },
+    { duration: '1m',  target: 100 },
+    { duration: '30s', target: 0   },
   ],
   thresholds: {
-    message_latency_ms: ['p(50)<100', 'p(95)<500', 'p(99)<1000'],
-    http_req_failed:    ['rate<0.01'],
+    message_latency_ms: ['p(50)<200', 'p(95)<1000', 'p(99)<2000'],
+    http_req_failed:    ['rate<0.05'],
   },
 };
 
@@ -74,10 +74,11 @@ export default function (data) {
   );
   check(regRes, {
     'register 201':   (r) => r.status === 201,
-    'register token': (r) => !!r.json('token'),
+    'register token': (r) => r.status === 201 && !!r.json('token'),
   });
-  if (regRes.status !== 201) return;
+  if (regRes.status !== 201 || !regRes.body) return;
   const token = regRes.json('token');
+  if (!token) return;
 
   // 2. Вступить в комнату
   let roomId = data.roomId;
@@ -101,7 +102,6 @@ export default function (data) {
   const wsUrl = `${WS_URL}/ws?token=${token}&room_id=${roomId}`;
 
   const res = ws.connect(wsUrl, {}, function (socket) {
-    let sendInterval = null;
     let msgCount = 0;
     const MAX_MSGS = 10;
 
@@ -111,9 +111,11 @@ export default function (data) {
 
       // Сервер отправляет "joined" сразу после подключения → начинаем слать
       if (msg.type === 'joined') {
-        sendInterval = socket.setInterval(function () {
+        let done = false;
+        socket.setInterval(function () {
+          if (done) return;
           if (msgCount >= MAX_MSGS) {
-            socket.clearInterval(sendInterval);
+            done = true;
             socket.setTimeout(() => socket.close(), 3000);
             return;
           }

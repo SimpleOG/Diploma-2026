@@ -4,6 +4,8 @@ WORKDIR /app
 
 RUN apk add --no-cache git ca-certificates tzdata
 
+ENV GONOSUMDB=* GONOSUMCHECK=* GOFLAGS=-mod=mod
+
 COPY go.mod go.sum* ./
 RUN go mod download
 

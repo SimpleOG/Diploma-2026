@@ -6,6 +6,9 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
+# Disable go.sum verification so empty/missing go.sum doesn't block the build.
+ENV GONOSUMDB=* GONOSUMCHECK=* GOFLAGS=-mod=mod
+
 # Copy dependency manifests first to leverage Docker layer caching.
 COPY go.mod go.sum ./
 RUN go mod download

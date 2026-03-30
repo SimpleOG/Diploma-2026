@@ -25,11 +25,8 @@ FROM scratch
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
-# Copy the compiled binary.
+# Copy the compiled binary (migrations are embedded in the binary).
 COPY --from=builder /bin/server /server
-
-# Copy database migration files.
-COPY --from=builder /app/migrations /migrations
 
 EXPOSE 8080
 

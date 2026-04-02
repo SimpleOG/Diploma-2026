@@ -33,7 +33,7 @@ export const options = {
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8081';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8090';
 const WS_URL   = BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 // ── setup() ──────────────────────────────────────────────────────────────────

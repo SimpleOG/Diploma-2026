@@ -11,6 +11,7 @@ import ws from 'k6/ws';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
+import { formatSummary } from './summary.js';
 
 // ── Кастомные метрики ────────────────────────────────────────────────────────
 const messageLatency   = new Trend('message_latency_ms', true);
@@ -29,12 +30,22 @@ export const options = {
     message_latency_ms: ['p(50)<200', 'p(95)<1000', 'p(99)<2000'],
     http_req_failed:    ['rate<0.05'],
   },
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8081';
 const WS_URL   = BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 // ── setup() ──────────────────────────────────────────────────────────────────
+export function handleSummary(data) {
+  const txt = formatSummary(data, 'Вариант Б: Монолит + Kafka + MongoDB + Redis (порт 8081)');
+  return {
+    'results_b.json': JSON.stringify(data, null, 2),
+    'results_b.txt':  txt,
+    stdout:           txt,
+  };
+}
+
 export function setup() {
   const regRes = http.post(
     `${BASE_URL}/api/v1/auth/register`,

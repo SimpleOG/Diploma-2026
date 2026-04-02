@@ -13,6 +13,7 @@ import ws from 'k6/ws';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
+import { formatSummary } from './summary.js';
 
 // ── Кастомные метрики ────────────────────────────────────────────────────────
 // Trend собирает перцентили (p50, p95, p99) автоматически
@@ -33,12 +34,23 @@ export const options = {
     message_latency_ms: ['p(50)<200', 'p(95)<1000', 'p(99)<2000'],
     http_req_failed:    ['rate<0.05'],
   },
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const WS_URL   = BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
 
 // ── setup() — выполняется один раз перед стартом VU ─────────────────────────
+// ── handleSummary() — запускается после теста, пишет файлы ──────────────────
+export function handleSummary(data) {
+  const txt = formatSummary(data, 'Вариант А: Монолит + PostgreSQL + Redis (порт 8080)');
+  return {
+    'results_a.json': JSON.stringify(data, null, 2),
+    'results_a.txt':  txt,
+    stdout:           txt,
+  };
+}
+
 export function setup() {
   const regRes = http.post(
     `${BASE_URL}/api/v1/auth/register`,

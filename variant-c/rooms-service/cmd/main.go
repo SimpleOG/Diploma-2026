@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,9 +13,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 
@@ -25,9 +21,6 @@ import (
 	"github.com/chat-diploma/variant-c/rooms-service/internal/middleware"
 	"github.com/chat-diploma/variant-c/rooms-service/internal/repository"
 )
-
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -167,22 +160,23 @@ func openDB(dsn string) (*sql.DB, error) {
 }
 
 func runMigrations(db *sql.DB) error {
-	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	_, err := db.Exec(`
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE TABLE IF NOT EXISTS rooms (
+    id         UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       VARCHAR(100) NOT NULL,
+    owner_id   UUID         NOT NULL,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS room_members (
+    room_id   UUID        NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    user_id   UUID        NOT NULL,
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (room_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_room_members_user ON room_members(user_id);
+`)
 	if err != nil {
-		return fmt.Errorf("create migration source: %w", err)
-	}
-
-	dbDriver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return fmt.Errorf("create migration driver: %w", err)
-	}
-
-	m, err := migrate.NewWithInstance("iofs", sourceDriver, "postgres", dbDriver)
-	if err != nil {
-		return fmt.Errorf("create migrator: %w", err)
-	}
-
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	return nil

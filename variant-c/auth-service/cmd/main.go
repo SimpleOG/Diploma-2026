@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"embed"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -14,9 +13,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
 
 	"github.com/chat-diploma/variant-c/auth-service/internal/config"
@@ -24,9 +20,6 @@ import (
 	"github.com/chat-diploma/variant-c/auth-service/internal/middleware"
 	"github.com/chat-diploma/variant-c/auth-service/internal/repository"
 )
-
-//go:embed migrations/*.sql
-var migrationsFS embed.FS
 
 func main() {
 	// Initialize structured logger.
@@ -154,24 +147,18 @@ func openDB(dsn string) (*sql.DB, error) {
 	return nil, fmt.Errorf("could not connect to database: %w", err)
 }
 
-// runMigrations applies all pending database migrations.
+// runMigrations applies the schema via direct SQL execution.
 func runMigrations(db *sql.DB) error {
-	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	_, err := db.Exec(`
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE TABLE IF NOT EXISTS users (
+    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    username   VARCHAR(64) NOT NULL UNIQUE,
+    password   VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`)
 	if err != nil {
-		return fmt.Errorf("create migration source: %w", err)
-	}
-
-	dbDriver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return fmt.Errorf("create migration driver: %w", err)
-	}
-
-	m, err := migrate.NewWithInstance("iofs", sourceDriver, "postgres", dbDriver)
-	if err != nil {
-		return fmt.Errorf("create migrator: %w", err)
-	}
-
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	return nil

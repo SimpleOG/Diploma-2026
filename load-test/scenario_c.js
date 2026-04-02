@@ -19,6 +19,7 @@ import ws from 'k6/ws';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Counter } from 'k6/metrics';
+import { formatSummary } from './summary.js';
 
 // ── Кастомные метрики ────────────────────────────────────────────────────────
 const messageLatency    = new Trend('message_latency_ms', true);
@@ -50,9 +51,19 @@ export const options = {
     post_message_latency_ms:  ['p(95)<1000'],
     http_req_failed:          ['rate<0.05'],
   },
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
 // ── setup() — выполняется один раз перед стартом VU ─────────────────────────
+export function handleSummary(data) {
+  const txt = formatSummary(data, 'Вариант В: Микросервисы + RabbitMQ (порты 8081-8084)');
+  return {
+    'results_c.json': JSON.stringify(data, null, 2),
+    'results_c.txt':  txt,
+    stdout:           txt,
+  };
+}
+
 export function setup() {
   const regRes = http.post(
     `${AUTH_URL}/api/v1/auth/register`,

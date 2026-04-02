@@ -38,18 +38,13 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    healthcheck:
-      test: ["CMD-SHELL", "echo ruok | nc localhost 2181 | grep imok"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     restart: unless-stopped
     depends_on:
       zookeeper:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "9092:9092"
     environment:
@@ -63,7 +58,8 @@ services:
       test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 20
+      start_period: 30s
 
   memcached:
     image: memcached:1.6-alpine

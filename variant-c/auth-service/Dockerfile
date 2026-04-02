@@ -16,10 +16,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-w -s" -o /app/auth-service ./cmd/
 
 # Final minimal image
-FROM scratch
+FROM alpine:3.19
+RUN apk add --no-cache ca-certificates tzdata wget
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /app/auth-service /auth-service
 
 EXPOSE 8081

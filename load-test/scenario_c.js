@@ -39,17 +39,18 @@ const WS_URL       = __ENV.WS_URL       || 'ws://localhost:8084';
 
 export const options = {
   stages: [
-    { duration: '30s', target: 20  },
-    { duration: '1m',  target: 50  },
-    { duration: '1m',  target: 100 },
-    { duration: '30s', target: 0   },
+    { duration: '1m',  target: 500  },
+    { duration: '2m',  target: 2000 },
+    { duration: '3m',  target: 5000 },
+    { duration: '2m',  target: 10000 },
+    { duration: '1m',  target: 0    },
   ],
   thresholds: {
-    message_latency_ms:       ['p(50)<500', 'p(95)<2000', 'p(99)<5000'],
-    auth_latency_ms:          ['p(95)<500'],
-    rooms_latency_ms:         ['p(95)<500'],
-    post_message_latency_ms:  ['p(95)<1000'],
-    http_req_failed:          ['rate<0.05'],
+    message_latency_ms:       ['p(50)<1000', 'p(95)<5000', 'p(99)<15000'],
+    auth_latency_ms:          ['p(95)<2000'],
+    rooms_latency_ms:         ['p(95)<2000'],
+    post_message_latency_ms:  ['p(95)<3000'],
+    http_req_failed:          ['rate<0.1'],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };

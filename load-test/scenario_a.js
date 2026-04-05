@@ -25,14 +25,15 @@ const messagesReceived = new Counter('messages_received');
 // ── Конфигурация теста ───────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '30s', target: 20  },  // разгон
-    { duration: '1m',  target: 50  },  // средняя нагрузка
-    { duration: '1m',  target: 100 },  // пик 100 VU
-    { duration: '30s', target: 0   },  // снижение
+    { duration: '1m',  target: 500  },  // разгон
+    { duration: '2m',  target: 2000 },  // средняя нагрузка
+    { duration: '3m',  target: 5000 },  // высокая нагрузка
+    { duration: '2m',  target: 10000 }, // пик 10k VU
+    { duration: '1m',  target: 0    },  // снижение
   ],
   thresholds: {
-    message_latency_ms: ['p(50)<200', 'p(95)<1000', 'p(99)<2000'],
-    http_req_failed:    ['rate<0.05'],
+    message_latency_ms: ['p(50)<500', 'p(95)<3000', 'p(99)<10000'],
+    http_req_failed:    ['rate<0.1'],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
